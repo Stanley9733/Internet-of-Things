@@ -1,29 +1,30 @@
 package com.example.milestone4
 
-import android.content.Context
+import android.R.string
 import android.content.Intent
-import java.text.SimpleDateFormat
-import java.util.*
-import com.google.gson.annotations.SerializedName
-import kotlin.collections.ArrayList
 import android.os.Bundle
 import android.provider.Settings
 import android.support.v7.app.AppCompatActivity
+import android.text.TextUtils
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import com.android.volley.RequestQueue
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
+import com.squareup.picasso.Picasso
+import kotlinx.android.synthetic.main.activity_main.*
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
 import org.eclipse.paho.client.mqttv3.MqttMessage
-import com.google.gson.Gson
-import com.squareup.picasso.Picasso
-import com.android.volley.RequestQueue
-import com.android.volley.toolbox.StringRequest
-import com.android.volley.toolbox.Volley
-import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.activity_main.view.*
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.round
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     // I'm using lateinit for these widgets because I read that repeated calls to findViewById
     // are energy intensive
     lateinit var textView: TextView
+    lateinit var weather: TextView
     lateinit var maxweather: TextView
     lateinit var minweather: TextView
     lateinit var forecastmaxweather: TextView
@@ -69,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         textView = this.findViewById(R.id.text)
+        weather = this.findViewById(R.id.weather)
         maxweather = this.findViewById(R.id.maxweather)
         forecastmaxweather = this.findViewById(R.id.forecastmaxweather)
         forecastminweather = this.findViewById(R.id.forecastminweather)
@@ -139,114 +142,122 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun requestWeather(){
-        val url = StringBuilder("https://api.openweathermap.org/data/2.5/weather?q=austin&appid=237a2971d5e68747c681fc1e13bfe6d3").toString()
-        val stringRequest = object : StringRequest(com.android.volley.Request.Method.GET, url,
-                com.android.volley.Response.Listener<String> { response ->
-                    //textView.text = response
-                    mostRecentWeatherResult = gson.fromJson(response, WeatherResult::class.java)
-                    var imageID = mostRecentWeatherResult.weather.get(0).icon
+//        var zipcode = zipcode.text
+        val zip = zipcode.text.toString().trim()
+        if (TextUtils.isEmpty(zip)) {
+            zipcode.setError("Please Enter a valid Zip Code!")
+        } else { //do something
+            val url = StringBuilder("https://api.openweathermap.org/data/2.5/weather?zip="+zip+",us&appid=237a2971d5e68747c681fc1e13bfe6d3").toString()
+            val stringRequest = object : StringRequest(com.android.volley.Request.Method.GET, url,
+                    com.android.volley.Response.Listener<String> { response ->
+                        //textView.text = response
+                        mostRecentWeatherResult = gson.fromJson(response, WeatherResult::class.java)
+                        var imageID = mostRecentWeatherResult.weather.get(0).icon
 //                    textView.text = mostRecentWeatherResult.weather.get(0).description
-                    textView.text = mostRecentWeatherResult.weather.get(0).description
-                    maxweather.text = "The maximum tempature for today is ".plus(round(mostRecentWeatherResult.main.temp_max*1.8-459.67).toString())
-                    minweather.text = "The minimum tempature for today is ".plus(round(mostRecentWeatherResult.main.temp_min*1.8-459.67).toString())
-                    var raintoday: Double? = checkRain(mostRecentWeatherResult)
-                    precipitation.text = "The precipitation for today is ".plus(raintoday.toString())
+                        weather.text = mostRecentWeatherResult.weather.get(0).description
+                        maxweather.text = "The maximum tempature for today is ".plus(round(mostRecentWeatherResult.main.temp_max*1.8-459.67).toString()).plus("℉")
+                        minweather.text = "The minimum tempature for today is ".plus(round(mostRecentWeatherResult.main.temp_min*1.8-459.67).toString()).plus("℉")
+                        var raintoday: Double? = checkRain(mostRecentWeatherResult)
+                        precipitation.text = "The precipitation for today is ".plus(raintoday.toString())
 
 
 //                    weatherDescription = mostRecentWeatherResult.weather.get(0).description
-                    Picasso.with(this)
-                            .load("https://openweathermap.org/img/wn/" + imageID + ".png")
-                            //.load("https://openweathermap.org/img/wn/03d.png")
-                            .error(R.drawable.error)
-                            .resize(400, 400)
-                            .into(imageView)
-                },
-                com.android.volley.Response.ErrorListener { println("******That didn't work!") }) {}
-        queue.add(stringRequest)
+                        Picasso.with(this)
+                                .load("https://openweathermap.org/img/wn/" + imageID + ".png")
+                                //.load("https://openweathermap.org/img/wn/03d.png")
+                                .error(R.drawable.error)
+                                .resize(400, 400)
+                                .into(imageView)
+                    },
+                    com.android.volley.Response.ErrorListener { println("******That didn't work!") }) {}
+            queue.add(stringRequest)
 //
-        val url_tmr = StringBuilder("https://api.openweathermap.org/data/2.5/forecast?q=austin&appid=237a2971d5e68747c681fc1e13bfe6d3").toString()
-        val stringRequest_tmr = object : StringRequest(com.android.volley.Request.Method.GET, url_tmr,
-                com.android.volley.Response.Listener<String> { response ->
-                    //textView.text = response
-                    WeatherforecastResult = gson.fromJson(response, WeatherForecast::class.java)
-                    // get tomorrow date
-                    val tomorrowDate = getTomorrowDate()
+            val url_tmr = StringBuilder("https://api.openweathermap.org/data/2.5/forecast?zip="+zip+",us&appid=237a2971d5e68747c681fc1e13bfe6d3").toString()
+            val stringRequest_tmr = object : StringRequest(com.android.volley.Request.Method.GET, url_tmr,
+                    com.android.volley.Response.Listener<String> { response ->
+                        //textView.text = response
+                        WeatherforecastResult = gson.fromJson(response, WeatherForecast::class.java)
+                        // get tomorrow date
+                        val tomorrowDate = getTomorrowDate()
 
-                    // declare lists to hold multiple temperature/precipitation values
-                    val temps = ArrayList<Long>()
-                    val minTemps = ArrayList<Long>()
-                    val maxTemps = ArrayList<Long>()
-                    val rains = ArrayList<Double>()
-                    var snows = ArrayList<Double>()
+                        // declare lists to hold multiple temperature/precipitation values
+                        val temps = ArrayList<Long>()
+                        val minTemps = ArrayList<Long>()
+                        val maxTemps = ArrayList<Long>()
+                        val rains = ArrayList<Double>()
+                        var snows = ArrayList<Double>()
 
-                    var day = 0
-
-
-                    for (i in WeatherforecastResult.list) { // iterate through all the forecasts for next 5 days
-                        // get the current day's weather details object from the list of forecast
-                        val weatherDetails = WeatherforecastResult.list.get(day)
-                        var date = weatherDetails.dt_txt.substring(0,10)
+                        var day = 0
 
 
-                        if (date.equals(tomorrowDate.substring(0,10))) { // only use data from tomorrow's forecasts
-
-                            println("Tomorrow: " + date)
-
-                            // append to metric to appropriate list:
-
-                            var temp = convertTemperature(weatherDetails.main.temp)
-                            var temp_min = convertTemperature(weatherDetails.main.temp_min)
-                            var temp_max = convertTemperature(weatherDetails.main.temp_max)
-
-                            println("max temp: " + temp_max)
+                        for (i in WeatherforecastResult.list) { // iterate through all the forecasts for next 5 days
+                            // get the current day's weather details object from the list of forecast
+                            val weatherDetails = WeatherforecastResult.list.get(day)
+                            var date = weatherDetails.dt_txt.substring(0,10)
 
 
+                            if (date.equals(tomorrowDate.substring(0,10))) { // only use data from tomorrow's forecasts
 
-                            temps.add(temp)
-                            minTemps.add(temp_min)
-                            maxTemps.add(temp_max)
+                                println("Tomorrow: " + date)
 
-                            var rainForecasted: Double = checkRainForecast(WeatherforecastResult, day)
+                                // append to metric to appropriate list:
+
+                                var temp = convertTemperature(weatherDetails.main.temp)
+                                var temp_min = convertTemperature(weatherDetails.main.temp_min)
+                                var temp_max = convertTemperature(weatherDetails.main.temp_max)
+
+                                println("max temp: " + temp_max)
+
+
+
+                                temps.add(temp)
+                                minTemps.add(temp_min)
+                                maxTemps.add(temp_max)
+
+                                var rainForecasted: Double = checkRainForecast(WeatherforecastResult, day)
 //                            var snowForecasted: Double = checkSnowForecast(WeatherforecastResult, day)
 
-                            rains.add(rainForecasted)
+                                rains.add(rainForecasted)
 //                            snows.add(snowForecasted)
+                            }
+                            day = day+1
                         }
-                        day = day+1
-                    }
 
-                    // compute averages of all lists
-                    val averageTemp : Long = calculateAverage(temps)
-                    val averageMinTemp : Long? = minTemps.min()
-                    val averageMinTempLong : Long = averageMinTemp!!.toLong()
-                    val averageMaxTemp : Long? = maxTemps.max()
-                    val averageMaxTempLong : Long = averageMaxTemp!!.toLong()
+                        // compute averages of all lists
+                        val averageTemp : Long = calculateAverage(temps)
+                        val averageMinTemp : Long? = minTemps.min()
+                        val averageMinTempLong : Long = averageMinTemp!!.toLong()
+                        val averageMaxTemp : Long? = maxTemps.max()
+                        val averageMaxTempLong : Long = averageMaxTemp!!.toLong()
 
-                    val averageRain : Double = calculateAverageDouble(rains)
+                        val averageRain : Double = calculateAverageDouble(rains)
 
 
-                    forecastmaxweather.text = "The maximum tempature for tomorrow is ".plus(averageMaxTemp).toString()
-                    forecastminweather.text = "The minimum tempature for tomorrow is ".plus(averageMinTemp).toString()
-                    forecastprecipitation.text = "The precipitation for tomorrow is ".plus(averageRain).toString()
+                        forecastmaxweather.text = "The maximum tempature for tomorrow is ".plus(averageMaxTemp).plus("℉")
+                        forecastminweather.text = "The minimum tempature for tomorrow is ".plus(averageMinTemp).plus("℉")
+                        forecastprecipitation.text = "The precipitation for tomorrow is ".plus(averageRain)
 
 
-                    weatherDescription= "{\"tmrlow\":" + averageMinTemp + ", \"tmrhigh\": " + averageMaxTemp +
-                            ", \"tmrrain\":" + averageRain+ ", \"low\": " + round(mostRecentWeatherResult.main.temp_min*1.8-459.67) + ", \"high\": " + round(mostRecentWeatherResult.main.temp_max*1.8-459.67)+ ", \"rain\": " + checkRain(mostRecentWeatherResult) + "}"
+                        weatherDescription= "{\"tmrlow\":" + averageMinTemp + ", \"tmrhigh\": " + averageMaxTemp +
+                                ", \"tmrrain\":" + averageRain+ ", \"low\": " + round(mostRecentWeatherResult.main.temp_min*1.8-459.67) + ", \"high\": " + round(mostRecentWeatherResult.main.temp_max*1.8-459.67)+ ", \"rain\": " + checkRain(mostRecentWeatherResult) + "}"
 
 
 //                    val averageSnow : Double = calculateAverageDouble(snows)
 
-                    // Create json object of forecasted weather data to send to Raspberry Pi
+                        // Create json object of forecasted weather data to send to Raspberry Pi
 //                    prepareForecastWeatherData(averageTemp, averageMinTempLong, averageMaxTempLong, averageRain, averageSnow)
 
-                    // combine two sets of weather data
+                        // combine two sets of weather data
 //                    weatherData = currentWeatherData + forecastWeatherData
 //                    println("complete weather data: " + weatherData)
 
-                },
-                com.android.volley.Response.ErrorListener { println("******Not able to get forecast!") }) {}
-        // Add the request to the RequestQueue.
-        queue.add(stringRequest_tmr)
+                    },
+                    com.android.volley.Response.ErrorListener { println("******Not able to get forecast!") }) {}
+            // Add the request to the RequestQueue.
+            queue.add(stringRequest_tmr)
+        }
+
+
 
 
     }
