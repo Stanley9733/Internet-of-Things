@@ -86,6 +86,8 @@ class MainActivity : AppCompatActivity() {
         // when the user presses the syncbutton, this method will get called
         syncButton.setOnClickListener({ syncWithPi() })
 
+        publishButton.setOnClickListener { publish() }
+
         // when the user presses the syncbutton, this method will get called
         retrieveButton.setOnClickListener({ requestWeather() })
 
@@ -129,6 +131,14 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+    }
+
+
+    fun publish(){
+        val message = MqttMessage()
+//                message.payload = ("Hello World").toByteArray()
+        message.payload = weatherDescription.toByteArray()
+        mqttAndroidClient.publish(publishTopic, message)
     }
 
     // this method just connects the paho mqtt client to the broker
