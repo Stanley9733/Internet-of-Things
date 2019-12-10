@@ -30,6 +30,7 @@ import android.content.Context
 import android.graphics.Color
 import android.app.Notification
 import android.view.View
+import kotlin.math.roundToInt
 
 
 class MainActivity : AppCompatActivity() {
@@ -50,13 +51,18 @@ class MainActivity : AppCompatActivity() {
     lateinit var wifiButton: Button
     lateinit var imageView: ImageView
     lateinit var syncButton: Button
+    lateinit var goalButton: Button
+
+
 
     lateinit var queue: RequestQueue
     lateinit var gson: Gson
     lateinit var mostRecentWeatherResult: WeatherResult
     lateinit var WeatherforecastResult: WeatherForecast
+    lateinit var stepsGoalResult: StepsGoal
 
-
+    var actualSteps: Int = 0
+    var hourlySteps: Int = 0
 
     // I'm doing a late init here because I need this to be an instance variable but I don't
     // have all the info I need to initialize it yet
@@ -95,10 +101,13 @@ class MainActivity : AppCompatActivity() {
         minweather = this.findViewById(R.id.minweather)
         precipitation=this.findViewById(R.id.precipitation)
         syncButton = this.findViewById(R.id.syncButton)
+        goalButton = this.findViewById(R.id.goalButton)
         retrieveButton = this.findViewById(R.id.retrieveButton)
         wifiButton = this.findViewById(R.id.wifiButton)
         imageView = this.findViewById(R.id.imageView)
 
+
+        goalButton.setOnClickListener ({checkgoal()})
         // when the user presses the syncbutton, this method will get called
         syncButton.setOnClickListener({ syncWithPi() })
 
@@ -133,8 +142,90 @@ class MainActivity : AppCompatActivity() {
 
             // this method is called when a message is received that fulfills a subscription
             override fun messageArrived(topic: String?, message: MqttMessage?) {
+                stepsGoalResult = gson.fromJson(message.toString(), StepsGoal::class.java)
                 println(message)
+                println(stepsGoalResult.actualSteps)
+                println(stepsGoalResult.todayGoal)
+
+
+                var calendar = Calendar.getInstance() // get current date
+                calendar.add(Calendar.DATE, 1)
+                val now: Date = calendar.time
+                val sdf = SimpleDateFormat("HH:mm:ss")
+                val nowtime = sdf.format(now)
+
+
+
                 textView.text = message.toString()
+                actualSteps = stepsGoalResult.actualSteps
+                hourlySteps = stepsGoalResult.todayGoal.roundToInt() / 12
+                if (nowtime > "08:50:00" && nowtime < "08:51:00") {
+                    if (actualSteps < hourlySteps) {
+                        sendnotification(actualSteps, hourlySteps)
+                    }
+                } else if (nowtime > "09:50:00" && nowtime < "09:51:00") {
+                    if (actualSteps < hourlySteps*2) {
+                        sendnotification(actualSteps, hourlySteps*2)
+                    }
+                }
+                else if (nowtime > "10:50:00" && nowtime < "10:51:00"){
+                    if (actualSteps < hourlySteps*3) {
+                        sendnotification(actualSteps, hourlySteps*3)
+                    }
+                }
+                else if (nowtime > "11:50:00" && nowtime < "11:51:00"){
+                    if (actualSteps < hourlySteps*4) {
+                        sendnotification(actualSteps, hourlySteps*4)
+                    }
+                }
+                else if (nowtime > "12:50:00" && nowtime < "12:51:00"){
+                    if (actualSteps < hourlySteps*5) {
+                        sendnotification(actualSteps, hourlySteps*5)
+                    }
+                }
+                else if (nowtime > "13:50:00" && nowtime < "13:51:00"){
+                    if (actualSteps < hourlySteps*6) {
+                        sendnotification(actualSteps, hourlySteps*6)
+                    }
+                }
+                else if (nowtime > "14:50:00" && nowtime < "14:51:00"){
+                    if (actualSteps < hourlySteps*7) {
+                        sendnotification(actualSteps, hourlySteps*7)
+                    }
+                }
+                else if (nowtime > "15:50:00" && nowtime < "15:51:00"){
+                    if (actualSteps < hourlySteps*8) {
+                        sendnotification(actualSteps, hourlySteps*8)
+                    }
+                }
+                else if (nowtime > "16:50:00" && nowtime < "16:51:00"){
+                    if (actualSteps < hourlySteps*9) {
+                        sendnotification(actualSteps, hourlySteps*9)
+                    }
+                }
+                else if (nowtime > "17:50:00" && nowtime < "17:51:00"){
+                    if (actualSteps < hourlySteps*10) {
+                        sendnotification(actualSteps, hourlySteps*10)
+                    }
+                }
+                else if (nowtime > "18:50:00" && nowtime < "18:51:00"){
+                    if (actualSteps < hourlySteps*11) {
+                        sendnotification(actualSteps, hourlySteps*11)
+                    }
+                }
+                else if (nowtime > "19:50:00" && nowtime < "19:51:00"){
+                    if (actualSteps < hourlySteps*12) {
+                        sendnotification(actualSteps, hourlySteps*12)
+                    }
+                }
+                else if (nowtime > "17:23:00" && nowtime < "17:33:00"){
+                    if (actualSteps < 20) {
+                        sendnotification(actualSteps, 10)
+                    }
+                }
+                //12 if statesment
+                // if time is 8:59:
+                // send a notification
             }
 
             override fun connectionLost(cause: Throwable?) {
@@ -164,6 +255,29 @@ class MainActivity : AppCompatActivity() {
         notificationManager?.createNotificationChannel(channel)
     }
 
+    fun sendnotification(actual:Int, hourly:Int ){
+        val difference = hourly - actual
+        val notificationID = 101
+        val channelID = "com.ebookfrenzy.notifydemo.news"
+
+        var calendar = Calendar.getInstance() // get current date
+        calendar.add(Calendar.DATE, 1)
+        val tomorrow: Date = calendar.time
+        val sdf = SimpleDateFormat("hh:mm:ss")
+        val tomorrowDate = sdf.format(tomorrow)
+
+        val notification = Notification.Builder(this@MainActivity,
+                channelID)
+                .setContentTitle("Walk more dude")
+                .setContentText("You have only walked "+ actual +" steps. You need to walk " + difference + " steps to reach your end of the hour steps goal of " + hourly + " steps.")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setChannelId(channelID)
+                .build()
+
+        notificationManager?.notify(notificationID, notification)
+    }
+
+
     fun publish(){
         val message = MqttMessage()
 //                message.payload = ("Hello World").toByteArray()
@@ -175,23 +289,54 @@ class MainActivity : AppCompatActivity() {
     fun syncWithPi(){
         println("+++++++ Connecting...")
         mqttAndroidClient.connect()
+
+
+
+//        val notificationID = 101
+//
+//        val channelID = "com.ebookfrenzy.notifydemo.news"
+//
+//        var calendar = Calendar.getInstance() // get current date
+//        calendar.add(Calendar.DATE, 1)
+//        val tomorrow: Date = calendar.time
+//        val sdf = SimpleDateFormat("hh:mm:ss")
+//        val tomorrowDate = sdf.format(tomorrow)
+//
+//        val notification = Notification.Builder(this@MainActivity,
+//                channelID)
+//                .setContentTitle("Example Notification")
+//                .setContentText("This is an example notification."+ tomorrowDate)
+//                .setSmallIcon(android.R.drawable.ic_dialog_info)
+//                .setChannelId(channelID)
+//                .build()
+//
+//        notificationManager?.notify(notificationID, notification)
     }
 
-    fun switchwifi(){
-        startActivity( Intent(Settings.ACTION_WIFI_SETTINGS));
+    fun checkgoal(){
         val notificationID = 101
 
         val channelID = "com.ebookfrenzy.notifydemo.news"
 
+        var calendar = Calendar.getInstance() // get current date
+        calendar.add(Calendar.DATE, 1)
+        val tomorrow: Date = calendar.time
+        val sdf = SimpleDateFormat("HH:mm:ss")
+        val tomorrowDate = sdf.format(tomorrow)
+
         val notification = Notification.Builder(this@MainActivity,
                 channelID)
                 .setContentTitle("Example Notification")
-                .setContentText("This is an example notification.")
+                .setContentText("This is an example notification."+ tomorrowDate)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setChannelId(channelID)
                 .build()
 
         notificationManager?.notify(notificationID, notification)
+    }
+
+    fun switchwifi(){
+        startActivity( Intent(Settings.ACTION_WIFI_SETTINGS));
     }
 
     fun requestWeather(){
@@ -506,3 +651,4 @@ class Rain( @SerializedName("3h") val threehour : Double?, @SerializedName("1h")
 class Coordinates(val lon: Double, val lat: Double)
 class Weather(val id: Int, val main: String, val description: String, val icon: String)
 class WeatherMain(val temp: Double, val pressure: Int, val humidity: Int, val temp_min: Double, val temp_max: Double)
+class StepsGoal(val actualSteps: Int, val todayGoal: Double)
