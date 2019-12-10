@@ -24,10 +24,16 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.round
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.graphics.Color
+import android.app.Notification
+import android.view.View
 
 
 class MainActivity : AppCompatActivity() {
-
+    private var notificationManager: NotificationManager? = null
 
     // I'm using lateinit for these widgets because I read that repeated calls to findViewById
     // are energy intensive
@@ -72,6 +78,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        notificationManager =
+                getSystemService(
+                        Context.NOTIFICATION_SERVICE) as NotificationManager
+        createNotificationChannel(
+                "com.ebookfrenzy.notifydemo.news",
+                "NotifyDemo News",
+                "Example News Channel")
+
         textView = this.findViewById(R.id.text)
         weather = this.findViewById(R.id.weather)
         maxweather = this.findViewById(R.id.maxweather)
@@ -135,6 +149,20 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    private fun createNotificationChannel(id: String, name: String,
+                                          description: String) {
+
+        val importance = NotificationManager.IMPORTANCE_LOW
+        val channel = NotificationChannel(id, name, importance)
+
+        channel.description = description
+        channel.enableLights(true)
+        channel.lightColor = Color.RED
+        channel.enableVibration(true)
+        channel.vibrationPattern =
+                longArrayOf(100, 200, 300, 400, 500, 400, 300, 200, 400)
+        notificationManager?.createNotificationChannel(channel)
+    }
 
     fun publish(){
         val message = MqttMessage()
@@ -151,6 +179,19 @@ class MainActivity : AppCompatActivity() {
 
     fun switchwifi(){
         startActivity( Intent(Settings.ACTION_WIFI_SETTINGS));
+        val notificationID = 101
+
+        val channelID = "com.ebookfrenzy.notifydemo.news"
+
+        val notification = Notification.Builder(this@MainActivity,
+                channelID)
+                .setContentTitle("Example Notification")
+                .setContentText("This is an example notification.")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setChannelId(channelID)
+                .build()
+
+        notificationManager?.notify(notificationID, notification)
     }
 
     fun requestWeather(){
