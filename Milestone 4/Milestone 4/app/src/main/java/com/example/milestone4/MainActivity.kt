@@ -220,7 +220,7 @@ class MainActivity : AppCompatActivity() {
                 }
                 else if (nowtime > "17:23:00" && nowtime < "17:33:00"){
                     if (actualSteps < 20) {
-                        sendnotification(actualSteps, 10)
+                        sendnotification(actualSteps, 20)
                     }
                 }
                 //12 if statesment
